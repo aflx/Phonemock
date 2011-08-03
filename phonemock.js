@@ -6,7 +6,7 @@
  *  		ak@aflx.de
  *  		http://www.phonemock.com
  *  
- * Phonegap target: 1.0.0rc3
+ * Phonegap target: 1.0.0
  * 
  * Use this to wrap the PhoneGap-calls in order to run your mobile project in
  * any WebKit Browser like Google Chrome.
@@ -41,6 +41,8 @@ Phonemock.defaultImage = "http://www.aflx.de/aflx_logo_109x80.png";
 /**
  * Call this function to init Phonemock!
  * You can pass a config object to add properties to Phonemock.
+ * 
+ * @param config	an object to configure Phonemock
  */
 Phonemock.construct = function(config) {
 	if (config) {
@@ -76,6 +78,8 @@ Phonemock.addConstructor(function(){
 /**
  * If you need FileSystem access, then you need to add a valid 
  * filestructure/FileSystem object.
+ * 
+ * @param fileSystem	
  */ 
 Phonemock.addFileSystem = function(fileSystem) {
 	PMFile.fileSystem = fileSystem;
@@ -83,6 +87,9 @@ Phonemock.addFileSystem = function(fileSystem) {
 
 /**
  * Just for globally handling missing result-function.
+ * 
+ * @param success	The success callback
+ * @param result   	The result which is passed to success
  */
 Phonemock.success = function(success, result) {
 	if (success)
@@ -93,6 +100,9 @@ Phonemock.success = function(success, result) {
 
 /**
  * Just for globally handling missing result-function.
+ * 
+ * @param fail   	The error callback
+ * @param error		The error object which is passed to fail
  */
 Phonemock.fail = function(fail, error) {
 	if (fail)
@@ -104,10 +114,19 @@ Phonemock.fail = function(fail, error) {
 /**
  * This is the link between the app and Phonemock. Instead of calling
  * Phonegap functions the calls are redirected to the Phonemock pendants.
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param type		for example File, NetworkStatus...
+ * @param call		The function to call
+ * @param params	These params are passed to the call method
  */
 PhoneGap.exec = function(success, fail, type, call, params) {
+	// remove whitespaces
 	type = type.replace(/\s+/g,'');
 	console.log("PhoneGap.exec call: " + call + " of " + type);
+	
+	// every type has a prefix PM
 	var execClass = new window["PM" + type]();
 	execClass[call](success, fail, params);
 };
@@ -122,9 +141,12 @@ PhoneGap.exec = function(success, fail, type, call, params) {
  * I had to override this because I think you will get in trouble if you have
  * a file and a directory with the same name! So we have to decide if we have
  * a directory or a file to delete.
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
  */
-DirectoryEntry.prototype.remove = function(successCallback, errorCallback) {
-    PhoneGap.exec(successCallback, errorCallback, "File", "remove", [this.fullPath, this.isFile]);
+DirectoryEntry.prototype.remove = function(success, fail) {
+    PhoneGap.exec(success, fail, "File", "remove", [this.fullPath, this.isFile]);
 };
 
 /*******************************************************************************
@@ -148,12 +170,20 @@ Phonemock.addConstructor(function() {
 PMCamera = function() {
 };
 
+/**
+ * Wraps the takePicture method of Camera.
+ * Always returns an URL to a picture.
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param params	quality, destinationType, sourceType
+ */
 PMCamera.prototype.takePicture = function(success, fail, params) {
 	var quality = params[0];
 	var destinationType = params[1];
 	var sourceType = params[2];
 	
-	success("http://www.aflx.de/aflx_logo_109x80.png");
+	success(Phonemock.defaultImage);
 };
 
 /*******************************************************************************
@@ -174,6 +204,13 @@ Phonemock.addConstructor(function(){
 PMCapture = function() {
 };
 
+/**
+ * Returns a MediaFile object. The fullPath is always an URL to an image.
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param options
+ */
 PMCapture.prototype.captureImage = function(success, fail, options) {
 	var limit = options.limit;
 	var mediaFile = new MediaFile();
@@ -213,6 +250,13 @@ PMCapture.prototype.captureImage = function(success, fail, options) {
 PMDevice = function() {
 };
 
+/**
+ * Faking device info. 
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param params
+ */
 PMDevice.prototype.getDeviceInfo = function(success, fail, params) {
 	var info = Object({
 		uuid: "82517-phone-mock",
@@ -263,6 +307,13 @@ Phonemock.addConstructor(function(){
 // LOCALFILESYSTEM
 //------------------------------------------------------------------------------
 
+/**
+ * Returns the fake fileSystem. You have to call Phonemock.addFileSystem() first!
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param params
+ */
 PMFile.prototype.requestFileSystem = function(success, fail, params) {
 	Phonemock.success(success, PMFile.fileSystem);
 };
@@ -291,8 +342,18 @@ PMFile.prototype.testSaveLocationExists = function(success, fail, params) {
 	console.log("Function not implemented yet: testSaveLocationExists");
 };
 
+/**
+ * Checks whether a File exists or not.
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param params
+ */
 PMFile.prototype.testFileExists = function(success, fail, params) {
 	var fileName = params[0];
+	var options = {};
+	options.create = false;
+	options.isFile = true;
 	
 	var file = PMFile.find(PMFile.fileSystem.root, fileName, "", options);
 	
@@ -322,6 +383,13 @@ PMFile.prototype.writeAsText = function(success, fail, params) {
 	console.log("Function not implemented yet: writeAsText");
 };
 
+/**
+ * Writes text to a file.
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param params
+ */
 PMFile.prototype.write = function(success, fail, params) {
 	var fileName = params[0];
 	var data = params[1];
@@ -348,6 +416,13 @@ PMFile.prototype.truncate = function(success, fail, params) {
 	console.log("Function not implemented yet: truncate");
 };
 
+/**
+ * Returns the content of a file.
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param params
+ */
 PMFile.prototype.readAsText = function(success, fail, params) {
 	var fileName = params[0];
 	var encoding = params[1];
@@ -392,13 +467,17 @@ PMFile.prototype.getMetadata = function(success, fail, params) {
 //see below in the DirectoryEntry section
 //PMFile.prototype.remove = function(success, fail, params);
 
-PMFile.prototype.moveTo = function(success, fail, params) {
-	var fullPath = params[0];
-	var parent = params[1];
-	var newName = params[2];
-	console.log("Function not implemented yet: moveTo");
-};
 
+//see below in the DirectoryEntry section
+//PMFile.prototype.moveTo = function(success, fail, params) {
+
+/**
+ * Returns some information of a file.
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param params
+ */
 PMFile.prototype.getFileMetadata = function(success, fail, params) {
 	var options = {};
 	options.isFile = true;
@@ -409,7 +488,6 @@ PMFile.prototype.getFileMetadata = function(success, fail, params) {
 		var file = new File();
 		file.name = fileEntry.name;
 		file.fullPath = fileEntry.fullPath;
-		// @TODO: getting a valid mime type and not only the extension
 		file.type = fileEntry.name.substring(fileEntry.name.lastIndexOf(".")+1);
 		file.lastModifiedDate = new Date();
 		file.size = fileEntry.content.length;
@@ -426,6 +504,13 @@ PMFile.prototype.getFileMetadata = function(success, fail, params) {
 // DIRECTORYENTRY
 //------------------------------------------------------------------------------
 
+/**
+ * Returns a directory by name/path.
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param params
+ */
 PMFile.prototype.getDirectory = function(success, fail, params) {
 	var path = params[0];
 	
@@ -446,6 +531,13 @@ PMFile.prototype.getDirectory = function(success, fail, params) {
 	}
 };
 
+/**
+ * Returns the content (a list of files and directories) of a directory.
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param params
+ */
 PMFile.prototype.readEntries = function(success, fail, params) {
 	var fullPath = params[0];
 	var options = {};
@@ -474,6 +566,13 @@ PMFile.prototype.getMetadata = function(success, fail, params) {
 	console.log("Function not implemented yet: getMetadata");
 };
 
+/**
+ * Returns the parent directory of a file or directory.
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param params
+ */
 PMFile.prototype.getParent = function(success, fail, params) {
 	var fullPath = params[0];
 	var parentPath = fullPath.substring(0,fullPath.lastIndexOf("/"));
@@ -491,13 +590,51 @@ PMFile.prototype.getParent = function(success, fail, params) {
 	}
 };
 
+/**
+ * Moves a file or directory to another directory.
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param params
+ */
 PMFile.prototype.moveTo = function(success, fail, params) {
-	var fullPath = params[0];
+	var fullPath = PMFile.getAbsolutePath(PMFile.fileSystem.root, params[0]);
 	var parent = params[1];
 	var newName = params[2];
-	console.log("Function not implemented yet: moveTo");
+	var options = {};
+	
+	var entry = PMFile.find(PMFile.fileSystem.root, fullPath, "", options);
+
+	if (entry) {
+		// move the entry from the current parent directory to the new parent
+		this.getParent(
+			function(dir){
+				var pos = dir.content.indexOf(entry);
+				dir.content.splice(pos, 1);
+				
+				entry.name = newName;
+				entry.fullPath = parent.fullPath + "/" + newName;
+				parent.content.push(entry);
+				
+				Phonemock.success(success, entry);
+			}, 
+			fail, 
+			[fullPath]
+		);
+	} else {
+		var error = new FileError();
+		error.code = FileError.NOT_FOUND_ERR;
+		Phonemock.fail(fail, error);
+	}
 };
 
+/**
+ * Removes a file or a directory.
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param params
+ */
 PMFile.prototype.remove = function(success, fail, params) {
 	var fullPath = params[0];
 	var isFile = params[1];
@@ -525,6 +662,13 @@ PMFile.prototype.remove = function(success, fail, params) {
 	}
 };
 
+/**
+ * Returns a file by name/path.
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param params
+ */
 PMFile.prototype.getFile = function(success, fail, params) {
 	var path = params[0];
 	
@@ -533,7 +677,7 @@ PMFile.prototype.getFile = function(success, fail, params) {
 	var options = params[2];
 	options.isFile = true;
 
-	// We always search for Files via the fullPath!
+	// We always search for files via the fullPath!
 	var file = PMFile.find(PMFile.fileSystem.root, fullPath, "", options);
 
 	if (file) {
@@ -545,6 +689,13 @@ PMFile.prototype.getFile = function(success, fail, params) {
 	}
 };
 
+/**
+ * Delete a whole directory.
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param params
+ */
 PMFile.prototype.removeRecursively = function(success, fail, params) {
 	var fullPath = params[0];
 	
@@ -584,13 +735,20 @@ PMFile.prototype.removeRecursively = function(success, fail, params) {
  * @param string relativePath
  */
 PMFile.getAbsolutePath = function(basePath, relativePath) {
-	if (relativePath.search(/\//g) == -1) {
+	if (relativePath.search(/^\//g) == -1) {
+		// example: "path"
 		// we have a path relative to the basePath (file or subdirectoy)
 		return basePath + "/" + relativePath;
-	} else if (relativePath.search(/\.\.\//g) != -1){
+	} else if (relativePath.search(/^\.\//g) != -1) {
+		// example: "./path"
+		// we also have a path relative to the basePath (file or subdirectoy)
+		// but we have to replace "./"
+		return basePath + "/" + relativePath.replace(/^\.\//g, "");
+	} else if (relativePath.search(/^\.\.\//g) != -1){
+		// example: "../path"
 		// we have to merge the base and the relative path
-		var upDirs = relativePath.match(/\.\.\//g).length;
-		relativePath = relativePath.replace(/\.\.\//g, "");
+		var upDirs = relativePath.match(/^\.\.\//g).length;
+		relativePath = relativePath.replace(/^\.\.\//g, "");
 		var itemsBase = basePath.split("/");
 		
 		for (var i = 0; i < upDirs; i++) {
@@ -598,10 +756,8 @@ PMFile.getAbsolutePath = function(basePath, relativePath) {
 		}
 		
 		return itemsBase.join("/") + "/" + relativePath;
-	} else if (relativePath.search(/\.\//g) != -1) {
-		// if we are looking for a subdir
-		return basePath + "/" + relativePath.replace(/.\//g, "");
 	} else {
+		// example: "/path"
 		// we have no realtive path
 		return relativePath;
 	}
@@ -631,7 +787,7 @@ PMFile.find = function(searchItems, fullPath, currentPath, options) {
 	
 	// The path to the current directory
 	if (currentPath == "") {
-		currentPath = currentDir;
+		currentPath = "/" + currentDir;
 	} else {
 		currentPath += "/" + currentDir;
 	}
@@ -669,15 +825,22 @@ PMFile.find = function(searchItems, fullPath, currentPath, options) {
 	if (searchItem == null &&
 		options != null &&
 		options.create == true) {
-		// create subdirectory if not exists
 		
-		if (options.isDirectory == true &&
-			options.isFile == false) {
+		if (dirStack.length > 1) {
+			// We are not in the last part of the path =>
+			// we always have to create a directory
 			searchItem = new DirectoryEntry();
 			searchItem.content = [];
 		} else {
-			searchItem = new FileEntry();
-			searchItem.content = "";
+			// create the file/directory if not exists
+			if (options.isDirectory == false &&
+				options.isFile == true) {
+				searchItem = new FileEntry();
+				searchItem.content = "";
+			} else {
+				searchItem = new DirectoryEntry();
+				searchItem.content = [];
+			}
 		}
 		
 		searchItem.name = nextItem;
@@ -724,8 +887,8 @@ PMNetworkStatus = function() {
 /**
  * Try to get the logo of www.aflx.de to check if an internet connection is available.
  * 
- * @param success
- * @param fail
+ * @param success	The success callback
+ * @param fail   	The error callback
  * @param params
  */
 PMNetworkStatus.prototype.getConnectionInfo = function(success, fail, params) {
