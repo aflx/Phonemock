@@ -123,7 +123,11 @@ Phonemock.fail = function(fail, error) {
  */
 PhoneGap.exec = function(success, fail, type, call, params) {
 	// remove whitespaces
-	type = type.replace(/\s+/g,'');
+	// and remove the classpath (iOS)
+	type = type.replace(/\s+/g,'').replace(/com.phonegap./, "");
+	
+	// capitalize
+	type = type.charAt(0).toUpperCase() + type.slice(1);
 	console.log("PhoneGap.exec call: " + call + " of " + type);
 	
 	// every type has a prefix PM
@@ -148,6 +152,19 @@ PhoneGap.exec = function(success, fail, type, call, params) {
 DirectoryEntry.prototype.remove = function(success, fail) {
     PhoneGap.exec(success, fail, "File", "remove", [this.fullPath, this.isFile]);
 };
+
+/*******************************************************************************
+ * 
+ * App
+ * 
+ ******************************************************************************/
+
+PMApp = function() {
+};
+
+PMApp.prototype.overrideBackbutton = function(success, fail, params) {
+	console.log("Phonemock overrideBackbutton");
+}
 
 /*******************************************************************************
  * 
@@ -639,18 +656,20 @@ PMFile.prototype.remove = function(success, fail, params) {
 	var fullPath = params[0];
 	var isFile = params[1];
 	var options = {};
-	options.isFile = isFile;
+	options.isFile = isFile; 
 	
 	var entry = PMFile.find(PMFile.fileSystem.root, fullPath, "", options);
 
 	// Only delete the directory if there is no content (subdirectories or files)
-	if (entry && entry.content.length == 0) {
+	if (entry && 
+		(entry instanceof FileEntry ||
+		entry.content.length == 0)) {
 		this.getParent(
 			function(dir){
 				var pos = dir.content.indexOf(entry);
 				dir.content.splice(pos, 1);
 				
-				Phonemock.success(success, dir);
+				Phonemock.success(success, entry);
 			}, 
 			fail, 
 			[fullPath]
