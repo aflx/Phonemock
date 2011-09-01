@@ -196,12 +196,32 @@ PMCamera = function() {
  * @param params	quality, destinationType, sourceType
  */
 PMCamera.prototype.takePicture = function(success, fail, params) {
-	var quality = params[0];
-	var destinationType = params[1];
-	var sourceType = params[2];
+//	var quality = params[0];
+//	var destinationType = params[1];
+//	var sourceType = params[2];
+	var fullPath = PMFile.getAbsolutePath(PMFile.fileSystem.root.fullPath,"temp/" + parseInt(Math.random() * 1000000) + ".png");
 	
-	success(Phonemock.defaultImage);
+	var fileEntry = this.createPicture(fullPath);
+	
+	success(fileEntry.fullPath);
 };
+
+PMCamera.prototype.createPicture = function(fullPath) {
+	var options = {};
+	options.create = true;
+	options.isFile = true;
+	
+	// create new File
+	var fileEntry = PMFile.find(PMFile.fileSystem.root, fullPath, "", options);
+	
+	// We need to change the path to an image. 
+	// If you use this as src for image, there will be no problem with the additional param.
+	// On the other hand, we keep the original fullPath => we can move and copy this file.
+	// @TODO: should other method handle such files too? 
+	fileEntry.fullPath = Phonemock.defaultImage + "?local=" + fileEntry.fullPath;
+	
+	return fileEntry;
+}
 
 /*******************************************************************************
  * 
@@ -229,15 +249,27 @@ PMCapture = function() {
  * @param options
  */
 PMCapture.prototype.captureImage = function(success, fail, options) {
-	var limit = options.limit;
-	var mediaFile = new MediaFile();
-	mediaFile.name = "aflx_logo";
-	mediaFile.fullPath = Phonemock.defaultImage;
-	mediaFile.type = "png";
-	mediaFile.lastModifiedDate = new Date();
-	mediaFile.size = 100;
+	var limit = options[0].limit;
+	var fullPath = PMFile.getAbsolutePath(PMFile.fileSystem.root.fullPath,"temp/" + parseInt(Math.random() * 1000000) + ".png");
+	var results = [];
 	
-	success([mediaFile]);
+	// create new Files
+	var camera = new PMCamera();
+	
+	for (var i = 0; i < limit; i++) {
+		var fileEntry = camera.createPicture(fullPath);
+	
+		var mediaFile = new MediaFile();
+		mediaFile.name = fileEntry.name;
+		mediaFile.fullPath = fullPath;
+		mediaFile.type = "png";
+		mediaFile.lastModifiedDate = new Date();
+		mediaFile.size = 100;
+		
+		results.push(mediaFile);
+	}
+	
+	success(results);
 };
 
 /*******************************************************************************
@@ -280,7 +312,7 @@ PMDevice.prototype.getDeviceInfo = function(success, fail, params) {
 		version: "0.23",
 		platform: "bowser",
 		name: "phonemock",
-		phonegap: "1.0.0rc3"
+		phonegap: "1.0.0"
 	});
 	
 	success(info);
@@ -305,6 +337,18 @@ PMFile = function() {
 PMFile.fileSystem = null;
 // This is the content of a file or directory!
 PMFile.prototype.content = null;
+
+PMFile.prototype.resolvePath = function(fullPath) {
+	var isLink = fullPath.search(/^http:\/\//g) != -1;
+	
+	// We have to check wether we have to move a link or a file...
+	if (isLink) {
+		// if we have a link, we have to extract the local path, which is a param in the url
+		fullPath = fullPath.substring(fullPath.lastIndexOf("?local=") + 7);
+	}
+	
+	return fullPath;
+};
 
 /**
  * Add FileSystem to Phonemock
@@ -466,12 +510,8 @@ PMFile.prototype.readAsDataURL = function(success, fail, params) {
 // FILEENTRY
 //------------------------------------------------------------------------------
 
-PMFile.prototype.copyTo = function(success, fail, params) {
-	var fullPath = params[0];
-	var parent = params[1];
-	var newName = params[2];
-	console.log("Function not implemented yet: copyTo");
-};
+//see below in the DirectoryEntry section
+//PMFile.prototype.copyTo = function(success, fail, params);
 
 PMFile.prototype.getMetadata = function(success, fail, params) {
 	var fullPath = params[0];
@@ -483,7 +523,6 @@ PMFile.prototype.getMetadata = function(success, fail, params) {
 
 //see below in the DirectoryEntry section
 //PMFile.prototype.remove = function(success, fail, params);
-
 
 //see below in the DirectoryEntry section
 //PMFile.prototype.moveTo = function(success, fail, params) {
@@ -571,11 +610,46 @@ PMFile.prototype.readEntries = function(success, fail, params) {
 	}
 };
 
+/**
+ * Creates a copy of a file and returns it.
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param params
+ */
 PMFile.prototype.copyTo = function(success, fail, params) {
 	var fullPath = params[0];
 	var parent = params[1];
 	var newName = params[2];
-	console.log("Function not implemented yet: copyTo");
+	var newEntry = undefined;
+	
+	var options = {};
+	options.create = true; 			// needed for creating the copy
+	options.isFile = true;
+	options.isDirectory = false;
+	
+	var sourceEntry = PMFile.find(PMFile.fileSystem.root, fullPath, "", options);
+	
+	// If you want to copy an image which is not saved in a file,
+	// we have just to create a new file with special settings.
+	if (fullPath.search(/^http:\/\//g) != -1) {
+		newEntry = PMFile.find(PMFile.fileSystem.root, parent.fullPath + "/" + newName, "", options);
+		newEntry.fullPath = fullPath.substring(0, fullPath.lastIndexOf("?local=")) + "?local=" + newEntry.fullPath;
+	} else {
+		fullPath = PMFile.getAbsolutePath(PMFile.fileSystem.root.fullPath, fullPath);
+		newEntry = PMFile.find(PMFile.fileSystem.root, parent.fullPath + "/" + newName, "", options);
+	}
+	
+	if (newEntry && sourceEntry) {
+		// copy the properties of the sourceEntry
+		
+		newEntry.content = sourceEntry.content;
+		Phonemock.success(success, newEntry);
+	} else {
+		var error = new FileError();
+		error.code = FileError.NOT_FOUND_ERR;
+		Phonemock.fail(fail, error);
+	}
 };
 
 PMFile.prototype.getMetadata = function(success, fail, params) {
@@ -591,7 +665,7 @@ PMFile.prototype.getMetadata = function(success, fail, params) {
  * @param params
  */
 PMFile.prototype.getParent = function(success, fail, params) {
-	var fullPath = params[0];
+	var fullPath = this.resolvePath(params[0]);
 	var parentPath = fullPath.substring(0,fullPath.lastIndexOf("/"));
 	var options = {};
 	options.isDirectory = true;
@@ -615,12 +689,13 @@ PMFile.prototype.getParent = function(success, fail, params) {
  * @param params
  */
 PMFile.prototype.moveTo = function(success, fail, params) {
-	var fullPath = PMFile.getAbsolutePath(PMFile.fileSystem.root, params[0]);
+	var fullPath = params[0];
 	var parent = params[1];
 	var newName = params[2];
 	var options = {};
+	var isLink = fullPath.search(/^http:\/\//g) != -1;
 	
-	var entry = PMFile.find(PMFile.fileSystem.root, fullPath, "", options);
+	var entry = PMFile.find(PMFile.fileSystem.root, this.resolvePath(fullPath), "", options);
 
 	if (entry) {
 		// move the entry from the current parent directory to the new parent
@@ -630,7 +705,14 @@ PMFile.prototype.moveTo = function(success, fail, params) {
 				dir.content.splice(pos, 1);
 				
 				entry.name = newName;
-				entry.fullPath = parent.fullPath + "/" + newName;
+				
+				if (isLink) {
+					// if we moved a link, we have to change the fullPath => link?local=fullPath
+					entry.fullPath = fullPath.substring(0, fullPath.lastIndexOf("?local=")) + "?local=" + parent.fullPath + "/" + newName;
+				} else {
+					entry.fullPath = parent.fullPath + "/" + newName;
+				}
+					
 				parent.content.push(entry);
 				
 				Phonemock.success(success, entry);
@@ -653,7 +735,7 @@ PMFile.prototype.moveTo = function(success, fail, params) {
  * @param params
  */
 PMFile.prototype.remove = function(success, fail, params) {
-	var fullPath = params[0];
+	var fullPath = this.resolvePath(params[0]);
 	var isFile = params[1];
 	var options = {};
 	options.isFile = isFile; 
@@ -692,7 +774,7 @@ PMFile.prototype.getFile = function(success, fail, params) {
 	var path = params[0];
 	
 	// merge relative path if needed
-	var fullPath = PMFile.getAbsolutePath(path, params[1]);
+	var fullPath = PMFile.getAbsolutePath(path, this.resolvePath(params[1]));
 	var options = params[2];
 	options.isFile = true;
 
@@ -754,6 +836,8 @@ PMFile.prototype.removeRecursively = function(success, fail, params) {
  * @param string relativePath
  */
 PMFile.getAbsolutePath = function(basePath, relativePath) {
+	if (basePath.search(/^\//g) == -1) basePath = "/" + basePath;
+	
 	if (relativePath.search(/^\//g) == -1) {
 		// example: "path"
 		// we have a path relative to the basePath (file or subdirectoy)
