@@ -29,6 +29,36 @@ Phonemock.construct();
 
 You can pass a config object to this function above.
 
+### File support ###
+
+In order to mock the whole filesystem you have to initialize it like this:
+
+<pre>
+// a file and the app directory
+var file = new FileEntry();
+file.name = "test.txt";
+file.fullPath = "myapp/test.txt";
+file.content = "Hello!";
+
+var appDir = new DirectoryEntry();
+appDir.name = "myapp";
+appDir.fullPath = "myapp";
+appDir.content = [ file ];
+
+// the root
+var root = new DirectoryEntry();
+root.name = "sdcard";
+root.fullPath = "sdcard";
+root.content = [appDir];
+
+var filesystem = new FileSystem();
+filesystem.name = "sdcard";
+filesystem.fullPath = "sdcard";
+filesystem.root = root;
+
+Phonemock.addFileSystem(filesystem);
+</pre>
+
 ## Phonemock and plugins ##
 
 You have to include js code for every plugin you want to wrap.
