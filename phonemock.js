@@ -379,9 +379,19 @@ PMFile.prototype.requestFileSystem = function(success, fail, params) {
 	Phonemock.success(success, PMFile.fileSystem);
 };
 
+/**
+ * Retrieve a DirectoryEntry or FileEntry using local URI.
+ * 
+ * @param success	The success callback
+ * @param fail   	The error callback
+ * @param params
+ */
 PMFile.prototype.resolveLocalFileSystemURI = function(success, fail, params) {
-	var uri = params[0];
-	console.log("Function not implemented yet: resolveLocalFileSystemURI");
+	var options = {};
+	options.create = false;
+	var entry = PMFile.find(PMFile.fileSystem.root, this.resolvePath(params[0]), "", options);
+	
+	Phonemock.success(success, entry);
 };
 
 //------------------------------------------------------------------------------
