@@ -1,18 +1,18 @@
 /**
  * Phonemock
  * =========
- *
- * @author 	Alexander Keller
+ * 
+ * @author 	Alexander Heinrich
  *  		ak@aflx.de
  *  		http://www.phonemock.com
- *
- * Phonegap target: 1.0.0
- *
+ *  
+ * Phonegap target: 1.1.0
+ * 
  * Use this to wrap the PhoneGap-calls in order to run your mobile project in
  * any WebKit Browser like Google Chrome.
  *
  * The MIT License
- * Copyright (c) 2011 Alexander Keller
+ * Copyright (c) 2011 Alexander Heinrich
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this
  * software and associated documentation files (the "Software"), to deal in the Software
@@ -397,12 +397,6 @@ PMFile.prototype.resolveLocalFileSystemURI = function(success, fail, params) {
 //------------------------------------------------------------------------------
 // FILE
 //------------------------------------------------------------------------------
-
-Phonemock.addConstructor(function() {
-    if (typeof navigator.fileMgr === "undefined") {
-        navigator.fileMgr = new FileMgr();
-    }
-});
 
 PMFile.prototype.getFileProperties = function(success, fail, params) {
 	var filePath = params[0];

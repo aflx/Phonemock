@@ -1,9 +1,9 @@
 # Phonemock - a JS-Wrapper for PhoneGap #
-By Alexander Keller
+By Alexander Heinrich
    ak@aflx.de
    http://www.aflx.de
  
-   Phonegap target: 1.0.0
+   Phonegap target: 1.1.0
 
 Use this to wrap the PhoneGap-calls in order to run your mobile project in
 a browser like Google Chrome.
@@ -102,7 +102,7 @@ If you want to contribute or if you found an error or...let me know!
 ## LICENCE ##
 
 The MIT License
-Copyright (c) 2011 Alexander Keller
+Copyright (c) 2011 Alexander Heinrich
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this 
 software and associated documentation files (the "Software"), to deal in the Software 
